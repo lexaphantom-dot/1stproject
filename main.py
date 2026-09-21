@@ -1,16 +1,3 @@
-
-# from fastapi import FastAPI
-
-# app = FastAPI()
-
-# @app.get("/health")
-# async def read_h():
-#     return {"Hello": "World"}
-
-# @app.get("/")
-# async def read_root():
-#     return {"pid": "or"}
-
 from fastapi import FastAPI, HTTPException
 from typing import Optional, List, Dict
 from pydantic import BaseModel, Field #field нужен будет для указания значения по умолчанию для атрибута и его допустимой длины
@@ -53,3 +40,13 @@ async def add_task (task_input: TaskCreate) -> Task:
 @app.get("/tasks")  #делаем GET-запрос
 async def get_tasks ():
     return tasks #возвращаем изначальный список, куда добавляются созданные задачи
+
+#переходим к Заданию №2
+
+@app.get ("tasks/{task_id}", response_model=Task) #создание функции получения задачи по определенному айди
+async def get_task_by_id (task_id:int)
+    for task in tasks:
+        if task["id"] == task_id:
+            return task #здесь благодаря response_model FastAPI автоматически преобразует словарь в модель Task, указанную ранее в самом начале
+        
+    raise HTTPException(status_code=404, detail=f"Задача с таким ID как {task_id} не существует")
