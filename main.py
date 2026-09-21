@@ -43,8 +43,8 @@ async def get_tasks ():
 
 #переходим к Заданию №2
 
-@app.get ("tasks/{task_id}", response_model=Task) #создание функции получения задачи по определенному айди
-async def get_task_by_id (task_id:int)
+@app.get ("/tasks/{task_id}", response_model=Task) #создание функции получения задачи по определенному айди
+async def get_task_by_id (task_id:int):
     for task in tasks:
         if task["id"] == task_id:
             return task #здесь благодаря response_model FastAPI автоматически преобразует словарь в модель Task, указанную ранее в самом начале
