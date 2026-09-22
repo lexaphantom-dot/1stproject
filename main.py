@@ -21,7 +21,8 @@ class Task(BaseModel): # класс объектов "задания"
     title:str = Field(min_length=3, max_length=1000) 
     description: Optional[str] = Field(default=None, max_length=1000)
     status: TaskStatus = TaskStatus.NEW #значение по умолчанию в enum
-    created_at: datetime 
+    created_at: datetime
+    updated_at: Optional[datetime] = None
 
 class TaskCreate(BaseModel):  #класс, на основе которого будут приниматься данные от пользователя
     title:str = Field(min_length=3, max_length=1000) 
@@ -67,9 +68,16 @@ async def update_task(task_id: int, task_update: TaskUpdate):
     for task in tasks:
         if task["id"] == task_id: #ищем задачу с нужным айди
             update_data = task_update.model_dump(exclude_unset=True)
+
+            changes = False #специальная переменная-флаг
+
             #создается словарь только с теми данными, что обновил клиент
             for key, value in update_data.items():
             #обновление ключей
-                task[key] = value
-            return task #возвращение задачи с обновленными полями
+                if task[key] != value: #если значение неравно старому (то есть поменялось)
+                    task[key] = value  #значит обновляем его
+                    changes = True #меняем нашу переменную-флаг
+            if changes: #соответственно если наш флаг поменялся на true, что означает что у нас поменялась задача, значит меняем время обновления
+                task["updated_at"] = datetime.now()
+            return task #возвращение задачи с обновленными полями (и возможно новым временем обновления)
     raise HTTPException(status_code=404, detail=f"Задача с таким ID как {task_id} не существует")
