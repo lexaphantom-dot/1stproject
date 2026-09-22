@@ -1,3 +1,4 @@
+from enum import Enum
 from fastapi import FastAPI, HTTPException
 from typing import Optional, List, Dict
 from pydantic import BaseModel, Field #field нужен будет для указания значения по умолчанию для атрибута и его допустимой длины
@@ -9,11 +10,17 @@ start_task_id = 1
 
 tasks: list[dict] = []
 
+class TaskStatus(str, Enum): #класс для статусов
+    NEW = "new"
+    IN_PROGRESS = "in_progress"
+    DONE = "done"
+
+
 class Task(BaseModel): # класс объектов "задания"
     id:int
     title:str = Field(min_length=3, max_length=1000) 
     description: Optional[str] = Field(default=None, max_length=1000)
-    status:str = "new"
+    status: TaskStatus = TaskStatus.NEW #значение по умолчанию в enum
     created_at: datetime 
 
 class TaskCreate(BaseModel):  #класс, на основе которого будут приниматься данные от пользователя
@@ -23,7 +30,7 @@ class TaskCreate(BaseModel):  #класс, на основе которого б
 class TaskUpdate(BaseModel):
     title: Optional[str] = Field (default = None, min_length = 3, max_length = 1000)
     description: Optional[str] = Field(default=None, max_length=1000)
-    status: Optional[str] = Field(default=None, max_length=50)
+    status: Optional[TaskStatus] = Field(default=None) #также используем enum
 
    
 @app.post("/tasks")   # делаем POST-запрос чтобы создавать какую-то определенную задачу на основе ранее созданного класса TaskCreate
