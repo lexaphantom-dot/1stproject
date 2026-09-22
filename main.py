@@ -20,8 +20,12 @@ class TaskCreate(BaseModel):  #класс, на основе которого б
     title:str = Field(min_length=3, max_length=1000) 
     description: Optional[str] = Field(default=None, max_length=1000)
 
-    
+class TaskUpdate(BaseModel):
+    title: Optional[str] = Field (default = None, min_length = 3, max_length = 1000)
+    description: Optional[str] = Field(default=None, max_length=1000)
+    status: Optional[str] = Field(default=None, max_length=50)
 
+   
 @app.post("/tasks")   # делаем POST-запрос чтобы создавать какую-то определенную задачу на основе ранее созданного класса TaskCreate
 async def add_task (task_input: TaskCreate) -> Task:
     current_task_id = len(tasks)+1 #генерируем айди
@@ -49,4 +53,16 @@ async def get_task_by_id (task_id:int):
         if task["id"] == task_id:
             return task #здесь благодаря response_model FastAPI автоматически преобразует словарь в модель Task, указанную ранее в самом начале
         
+    raise HTTPException(status_code=404, detail=f"Задача с таким ID как {task_id} не существует")
+
+@app.patch("/tasks/{task_id}", response_model=Task)
+async def update_task(task_id: int, task_update: TaskUpdate):
+    for task in tasks:
+        if task["id"] == task_id: #ищем задачу с нужным айди
+            update_data = task_update.model_dump(exclude_unset=True)
+            #создается словарь только с теми данными, что обновил клиент
+            for key, value in update_data.items():
+            #обновление ключей
+                task[key] = value
+            return task #возвращение задачи с обновленными полями
     raise HTTPException(status_code=404, detail=f"Задача с таким ID как {task_id} не существует")
