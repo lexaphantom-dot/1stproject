@@ -81,3 +81,17 @@ async def update_task(task_id: int, task_update: TaskUpdate):
                 task["updated_at"] = datetime.now()
             return task #возвращение задачи с обновленными полями (и возможно новым временем обновления)
     raise HTTPException(status_code=404, detail=f"Задача с таким ID как {task_id} не существует")
+
+# Указываем status_code=204, чтобы сервер возвращал пустой ответ при успехе
+@app.delete("/tasks/{task_id}", status_code=204)
+async def delete_task(task_id: int):
+    for task in tasks:
+        # Ищем нужную задачу по айди в списке
+        if task["id"] == task_id:
+            # Удаляем задачу из списка
+            tasks.remove(task)
+            # Вместо return {"detail": ...} мы возвращаем None (или просто пишем return)
+            return
+            
+    # Если цикл завершился и задача не найдена, отдаем 404
+    raise HTTPException(status_code=404, detail=f"Задача с таким ID как {task_id} не существует")
