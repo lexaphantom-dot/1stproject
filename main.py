@@ -50,8 +50,14 @@ async def add_task (task_input: TaskCreate) -> Task:
     return current_task #возвращаем клиенту именно объект
 
 @app.get("/tasks")  #делаем GET-запрос
-async def get_tasks ():
-    return tasks #возвращаем изначальный список, куда добавляются созданные задачи
+async def get_tasks (status: Optional[TaskStatus] = None): #необязательный параметр 'статус' по умолчанию равен None
+    if status is None: #то есть если статус не был передан, то ничего не меняется и преедается просто список всех задач
+        return tasks
+    filtered_tasks_by_status = []
+    for task in tasks:
+        if task ["status"] == status:
+            filtered_tasks_by_status.append(task)
+    return filtered_tasks_by_status #возвращаем отфильтрованный список по статусу
 
 #переходим к Заданию №2
 
