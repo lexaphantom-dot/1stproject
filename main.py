@@ -50,14 +50,31 @@ async def add_task (task_input: TaskCreate) -> Task:
     return current_task #возвращаем клиенту именно объект
 
 @app.get("/tasks")  #делаем GET-запрос
-async def get_tasks (status: Optional[TaskStatus] = None): #необязательный параметр 'статус' по умолчанию равен None
+async def get_tasks (
+    status: Optional[TaskStatus] = None, #необязательный параметр 'статус' по умолчанию равен None
+    search: Optional[str] = None #необязательный параметр для поиска
+):
     if status is None: #то есть если статус не был передан, то ничего не меняется и преедается просто список всех задач
-        return tasks
-    filtered_tasks_by_status = []
-    for task in tasks:
-        if task ["status"] == status:
-            filtered_tasks_by_status.append(task)
-    return filtered_tasks_by_status #возвращаем отфильтрованный список по статусу
+        result = list(tasks)
+    else:
+        result = [task for task in tasks if task["status"] == status] #генератор списка с фильтром по статусу
+    #далее начинается регистронезависимый поиск
+    if search is not None:
+        search_lower = search.lower() # приведение поискового запроса к нижнему регистру
+
+        filtered_by_search = []
+        for task in result:
+            #Приводим  title (название задачи) к нижнему регистру (для сравнения с поисковым запросом)
+            title_match = search_lower in task["title"].lower() #проверяет содержится ли поисковой запрос в нижнем регистре в навзании задачи в нижнем регистре
+
+            desc_match = False #эта строка нужна, потому что descriprion необазательное поле и может быть равно None
+            if task["description"] is not None:
+                desc_match = search_lower in task["description"].lower() #проверяет содержится ли поисковой запрос в нижнем регистре в описании задачи в нижнем регистре
+            if title_match or desc_match: #если либо название либо описание True (совпало с поиском)
+                filtered_by_search.append(task) #тогда добавляем задачу в новый список
+        result = filtered_by_search
+    return result
+            
 
 #переходим к Заданию №2
 
