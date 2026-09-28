@@ -10,6 +10,16 @@ start_task_id = 1
 
 tasks: list[dict] = []
 
+class TaskSortBy(str, Enum): #добавляем класс, по чему у нас могут сортироваться задачи
+    CREATED_AT = "created_at" #соответсвенно по времени создания
+    UPDATED_AT = "updated_at" #по времени обновления
+    TITLE = "title" #по названию
+
+class SortOrder(str, Enum): #этот класс добавляем для возможности выбора "направления" сортировки
+    ASC = "asc"   # По возрастанию (A-Z, от старых к новым)
+    DESC = "desc" # По убыванию (Z-A, от новых к старым)
+
+
 class TaskStatus(str, Enum): #класс для статусов
     NEW = "new"
     IN_PROGRESS = "in_progress"
@@ -52,7 +62,9 @@ async def add_task (task_input: TaskCreate) -> Task:
 @app.get("/tasks")  #делаем GET-запрос
 async def get_tasks (
     status: Optional[TaskStatus] = None, #необязательный параметр 'статус' по умолчанию равен None
-    search: Optional[str] = None #необязательный параметр для поиска
+    search: Optional[str] = None, #необязательный параметр для поиска
+    sort_by: TaskSortBy = TaskSortBy.CREATED_AT, #параметр сортировки, по умолчанию по времени создания
+    order: SortOrder = SortOrder.ASC #параметр задания направления сортировки, по умолчанию по возрастанию
 ):
     if status is None: #то есть если статус не был передан, то ничего не меняется и преедается просто список всех задач
         result = list(tasks)
@@ -64,18 +76,38 @@ async def get_tasks (
 
         filtered_by_search = []
         for task in result:
+
             #Приводим  title (название задачи) к нижнему регистру (для сравнения с поисковым запросом)
             title_match = search_lower in task["title"].lower() #проверяет содержится ли поисковой запрос в нижнем регистре в навзании задачи в нижнем регистре
 
             desc_match = False #эта строка нужна, потому что descriprion необазательное поле и может быть равно None
+
             if task["description"] is not None:
                 desc_match = search_lower in task["description"].lower() #проверяет содержится ли поисковой запрос в нижнем регистре в описании задачи в нижнем регистре
+
             if title_match or desc_match: #если либо название либо описание True (совпало с поиском)
                 filtered_by_search.append(task) #тогда добавляем задачу в новый список
         result = filtered_by_search
-    return result
-            
 
+#далее пойдет сортировка
+    is_reverse = (order == SortOrder.DESC) #эта переменная будет принимать значение True, если пользователем был выбран DESC (обратное направление)
+
+    if sort_by == TaskSortBy.UPDATED_AT: #если сортировка идет по времени обновления
+
+        #время обновления необязательный параметр, который может быть равен None,
+        #для чего и создается такое условие, согласно которому, если оно равно None,
+        #чтобы оно становилось просто минимальным временем и было в конце списка (datetime.min),
+        #а revers отвечает в методе .sort как-раз таки за направление сортировки, и туда мы
+        #передаем нашу переменную-флаг is_reverse
+        result.sort(key=lambda x: x.get("updated_at") or datetime.min, reverse=is_reverse)
+
+    else:
+        #если же сортировка идет по названию или времени создания,
+        #которые являются обязательными параметрами и всегда есть:
+        result.sort(key=lambda x: x[sort_by.value], reverse=is_reverse)
+
+    return result
+         
 #переходим к Заданию №2
 
 @app.get ("/tasks/{task_id}", response_model=Task) #создание функции получения задачи по определенному айди
