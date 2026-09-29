@@ -1,5 +1,5 @@
 from enum import Enum
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from typing import Optional, List, Dict
 from pydantic import BaseModel, Field #field нужен будет для указания значения по умолчанию для атрибута и его допустимой длины
 from datetime import datetime
@@ -64,7 +64,9 @@ async def get_tasks (
     status: Optional[TaskStatus] = None, #необязательный параметр 'статус' по умолчанию равен None
     search: Optional[str] = None, #необязательный параметр для поиска
     sort_by: TaskSortBy = TaskSortBy.CREATED_AT, #параметр сортировки, по умолчанию по времени создания
-    order: SortOrder = SortOrder.ASC #параметр задания направления сортировки, по умолчанию по возрастанию
+    order: SortOrder = SortOrder.ASC, #параметр задания направления сортировки, по умолчанию по возрастанию
+    limit: int = Query(default=10,ge=1,le=100), #сколько задач должно быть на одной странице
+    offset: int = Query(default=0,ge=0), #сколько задач с начала мы пропускаем и не показываем
 ):
     if status is None: #то есть если статус не был передан, то ничего не меняется и преедается просто список всех задач
         result = list(tasks)
@@ -105,6 +107,9 @@ async def get_tasks (
         #если же сортировка идет по названию или времени создания,
         #которые являются обязательными параметрами и всегда есть:
         result.sort(key=lambda x: x[sort_by.value], reverse=is_reverse)
+
+    #здесь пагинация
+    result = result[offset : offset + limit]
 
     return result
          
