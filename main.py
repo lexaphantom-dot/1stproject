@@ -104,12 +104,12 @@ async def get_tasks (
         #чтобы оно становилось просто минимальным временем и было в конце списка (datetime.min),
         #а revers отвечает в методе .sort как-раз таки за направление сортировки, и туда мы
         #передаем нашу переменную-флаг is_reverse
-        result.sort(key=lambda x: x.get("updated_at") or datetime.min, reverse=is_reverse)
+        result.sort(key=lambda x: (x.get("updated_at") or datetime.min, x["id"]), reverse=is_reverse) #здесь добавляем еще один необязательный параметр для сортировки - id
 
     else:
         #если же сортировка идет по названию или времени создания,
         #которые являются обязательными параметрами и всегда есть:
-        result.sort(key=lambda x: x[sort_by.value], reverse=is_reverse)
+        result.sort(key=lambda x: (x[sort_by.value], x["id"]), reverse=is_reverse) #и так же здесь добавляем еще один необязательный параметр для сортировки - id
 
     total_count = len(result)
 
