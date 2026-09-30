@@ -25,7 +25,6 @@ class TaskStatus(str, Enum): #класс для статусов
     IN_PROGRESS = "in_progress"
     DONE = "done"
 
-
 class Task(BaseModel): # класс объектов "задания"
     id:int
     title:str = Field(min_length=3, max_length=1000) 
@@ -33,6 +32,10 @@ class Task(BaseModel): # класс объектов "задания"
     status: TaskStatus = TaskStatus.NEW #значение по умолчанию в enum
     created_at: datetime
     updated_at: Optional[datetime] = None
+
+class TaskListResponse (BaseModel): #этот класс для возвращения в конце функции get_items ответа в формате со значениями total и items
+    total: int
+    items: list[Task]
 
 class TaskCreate(BaseModel):  #класс, на основе которого будут приниматься данные от пользователя
     title:str = Field(min_length=3, max_length=1000) 
@@ -59,7 +62,7 @@ async def add_task (task_input: TaskCreate) -> Task:
     
     return current_task #возвращаем клиенту именно объект
 
-@app.get("/tasks")  #делаем GET-запрос
+@app.get("/tasks", response_model=TaskListResponse)  #делаем GET-запрос
 async def get_tasks (
     status: Optional[TaskStatus] = None, #необязательный параметр 'статус' по умолчанию равен None
     search: Optional[str] = None, #необязательный параметр для поиска
@@ -108,10 +111,17 @@ async def get_tasks (
         #которые являются обязательными параметрами и всегда есть:
         result.sort(key=lambda x: x[sort_by.value], reverse=is_reverse)
 
-    #здесь пагинация
-    result = result[offset : offset + limit]
+    total_count = len(result)
 
-    return result
+    #здесь пагинация
+    items_list = result[offset : offset + limit]
+
+    items_and_total = TaskListResponse (
+        total=total_count, #количество задач, впринципе попавших в критерии поиска и сортировки
+        items=items_list #это список наших айтемов, то есть задач, которые должны выводиться после пагинации
+    )
+
+    return items_and_total
          
 #переходим к Заданию №2
 
