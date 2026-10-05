@@ -32,6 +32,7 @@ class Task(BaseModel): # класс объектов "задания"
     status: TaskStatus = TaskStatus.NEW #значение по умолчанию в enum
     created_at: datetime
     updated_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
 
 class TaskListResponse (BaseModel): #этот класс для возвращения в конце функции get_items ответа в формате со значениями total и items
     total: int
@@ -52,11 +53,12 @@ async def add_task (task_input: TaskCreate) -> Task:
     current_task_id = len(tasks)+1 #генерируем айди
 
     current_task = Task(
-        id=current_task_id,
-        title=task_input.title, 
-        description=task_input.description, 
-        status="new", 
-        created_at=datetime.now()
+        id = current_task_id,
+        title = task_input.title, 
+        description = task_input.description, 
+        status = "new", 
+        created_at = datetime.now(),
+        completed_at = None
     ) #создадим объект на основе изначального класса для задач Task
     tasks.append(current_task.model_dump()) #добавляем в изначальный список задач tasks объект, преобразованный в словарь как раз-таки с помощью model_dump()
     
@@ -137,10 +139,23 @@ async def get_task_by_id (task_id:int):
 async def update_task(task_id: int, task_update: TaskUpdate):
     for task in tasks:
         if task["id"] == task_id: #ищем задачу с нужным айди
-            update_data = task_update.model_dump(exclude_unset=True)
+            update_data = task_update.model_dump(exclude_unset=True) #те поля, которы клиент не трогал, исключаются здесь и остается только тот параметр(ы), которые менялись. Здесь же и засчет модел дамп все превращается в словарь
 
+            new_status = update_data.get("status") #проверяем, есть ли вообще ключ "status", то есть пытались ли его изменить? если нет то будет равно None
+
+            if new_status is not None: #то есть если статус менялся
+
+                if task["status"] == "done": #и статус был равен "done"
+                    raise HTTPException(status_code=409, detail="Нельзя изменять статус завершенной задачи!")
+                
+                if task["status"] == "in_progress" and new_status == "new": #или если он был равен "in_progress" а новый статус равен "new"
+                    raise HTTPException(status_code=409, detail="Нельзя вернуть задачу из работы в статус Новая!")
+                
+                if new_status == "done": #если задача в статусе done ставим у нее дату завершения
+                    task["completed_at"] = datetime.now()
+            
             changes = False #специальная переменная-флаг
-
+            
             #создается словарь только с теми данными, что обновил клиент
             for key, value in update_data.items():
             #обновление ключей
